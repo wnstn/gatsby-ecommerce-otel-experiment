@@ -130,14 +130,14 @@ const Header = (prop) => {
             </button>
             <Link
               aria-label="Favorites"
-              href="/account/favorites"
+              to="/account/favorites"
               className={`${styles.iconContainer} ${styles.hideOnMobile}`}
             >
               <Icon symbol={'heart'}></Icon>
             </Link>
             <Link
               aria-label="Orders"
-              href={isAuth() ? '/login' : '/account/orders/'}
+              to={isAuth() ? '/login' : '/account/orders/'}
               className={`${styles.iconContainer} ${styles.hideOnMobile}`}
             >
               <Icon symbol={'user'}></Icon>
