@@ -1,7 +1,6 @@
 import React from 'react';
 import Helmet from 'react-helmet';
 import PropTypes from 'prop-types';
-import { AppTracer } from '../../helpers/tracing';
 
 import Header from '../Header';
 import Footer from '../Footer';
@@ -26,7 +25,6 @@ const Layout = ({ props, children, disablePaddingBottom = false }) => {
           charset="UTF-8"
           href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.6.0/slick.min.css"
         />
-        <AppTracer />
       </Helmet>
 
       <Header />
