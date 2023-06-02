@@ -1,77 +1,94 @@
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import { trace, context } from '@opentelemetry/api';
-import { hrTime } from '@opentelemetry/core';
 
+let parentSpanDuration = 0;
+let parentSpanStartTime = 0;
 export class ResourceTiming extends InstrumentationBase {
-  
-  _getNavigationTiming() {
+
+  getNavigationTiming() {
     const navTiming = window.performance.getEntriesByType('navigation');
     if (navTiming.length === 0) {
-      return setTimeout(this._getNavigationTiming, 1000);
+      // wait a tick to see if the browser populates it
+      return setTimeout(this.getNavigationTiming, 1000);
     }
 
-    navTiming.forEach((timing)=>{
-      console.dir(timing);
+    navTiming.forEach((timing) => {
+      // 
+
       this.parentSpan.setAttributes({
-        'perf.requestTime': timing.responseStart - timing.requestStart,
-        'perf.loadTime': timing.loadEventEnd - timing.loadEventStart,
-        'perf.domContentLoaded': timing.domContentLoadEventEnd - timing.domContentLoadedEventStart,
-        'perf.transferSize': timing.transferSize,
-        'perf.decodedBodySize': timing.decodedBodySize,
-        'perf.encodedBodySize': timing.encodedBodySize,
-        'perf.domInteractive': timing.domInteractive - timing.fetchStart,
-      })
+        'page.decoded_size': timing.decodedBodySize,
+        'page.dom_content_loaded': timing.domContentLoadEventEnd - timing.domContentLoadedEventStart,
+        'page.dom_interactive_ms': timing.domInteractive - timing.fetchStart,
+        'page.encoded_body_size': timing.encodedBodySize,
+        'page.load_time_ms': timing.loadEventEnd - timing.fetchStart,
+        'page.navigation_duration_ms': timing.duration,
+        'page.protocol': timing.nextHopProtocol,
+        'page.request_time_ms': timing.responseStart - timing.requestStart,
+        'page.transfer_size': timing.transferSize,
+      });
     });
-    this.parentSpan.end();
-  }
-
-  _getResourceTiming() {
-    console.log('resource timing');
-    const now = hrTime();
-    const resources = window.performance.getEntriesByType('resource');
-    resources.forEach((entry) => {
-      this.onReport(entry, this.context, now);
-    })
     
+    console.log(parentSpanStartTime, parentSpanDuration);
+    const endTime = parentSpanStartTime + parentSpanDuration; 
+    this.parentSpan.end(endTime);
   }
 
-  _onDocumentLoaded() {
+  getResourcesTiming() {
+    const resources = window.performance.getEntriesByType('resource');
+    resources.forEach((entry) => this.getResourceTiming(entry, this.context))
+  }
+
+  getResourceTiming(entry, parentSpanContext) {
+    const startTime = parentSpanStartTime + entry.startTime;
+    const endTime = startTime + entry.duration;
+
+    const resourceSpan = trace
+      .getTracer('resource-performance')
+      .startSpan(entry.initiatorType, { startTime: startTime }, parentSpanContext);
+
+    resourceSpan.setAttributes({
+      'resource.duration_ms': entry.duration,
+      'resource.tcp.duration_ms': entry.connectEnd - entry.connectStart,
+      'resource.dns.duration_ms': entry.domainLookupEnd - entry.domainLookupStart,
+      'resource.request.duration_ms': entry.responseStart - entry.requestStart,
+      'resource.tls_handshake.duration_ms': entry.requestStart - entry.secureConnectionStart,
+      'resource.compressed': entry.decodedBodySize !== entry.encodedBodySize,
+      'resource.wire_size': entry.transferSize,
+      'resource.decoded_size': entry.decodedBodySize,
+      'resource.name': entry.name,
+      'resource.start_time_relative': entry.startTime,
+    });
+    
+    // adjust parent span length to match resource timeline
+    if (parentSpanDuration <= (entry.startTime + entry.duration)) {
+      console.log(`setting duration to ${entry.startTime + entry.duration}`);
+      parentSpanDuration = entry.startTime + entry.duration;
+    }
+
+    resourceSpan.end(endTime);
+  }
+
+  onDocumentLoaded() {
     this.context = trace.setSpan(context.active(), this.parentSpan);
     
-    const navTiming = this._getNavigationTiming.bind(this);
-    const resourceTiming = this._getResourceTiming.bind(this);
+    const navTiming = this.getNavigationTiming.bind(this);
+    const resourceTiming = this.getResourcesTiming.bind(this);
     requestIdleCallback(resourceTiming, {timeout: 2000});
     requestIdleCallback(navTiming, {timeout: 2000});
   }
 
+  openParentSpan() {
+    parentSpanStartTime = Date.now();
 
-  _waitForPageLoad() {
-    trace.getTracer('app-performance').startActiveSpan('resource-performance', (span)=>{
+    trace.getTracer('app-performance').startActiveSpan('resource-performance', (span) => {
       this.parentSpan = span;
       if (window.document.readyState === 'complete') {
-        this._onDocumentLoaded();
+        this.onDocumentLoaded();
       } else {
-        this._onDocumentLoaded = this._onDocumentLoaded.bind(this);
-        window.addEventListener('DOMContentLoaded', this._onDocumentLoaded);
-        }
-      })
-    }
-  
-  onReport(entry, parentSpanContext, start) {
-    const resourceSpan = trace
-      .getTracer('resource-performance')
-      .startSpan(entry.initiatorType, { startTime:  start + entry.fetchStart}, parentSpanContext);
-
-    resourceSpan.setAttributes({
-      [`resource.tcp.duration_ms`]: entry.connectEnd - entry.connectStart,
-      [`resource.dns.duration_ms`]: entry.domainLookupEnd - entry.domainLookupStart,
-      [`resource.request.duration_ms`]: entry.responseStart - entry.requestStart,
-      [`resource.tls_handshake.duration_ms`]: entry.requestStart - entry.secureConnectionStart,
-      [`resource.compressed`]: entry.decodedBodySize !== entry.encodedBodySize,
-      [`resource.wire_size`]: entry.transferSize,
-      [`resource.name`]: entry.name,
-    });
-    resourceSpan.end(start + entry.responseEnd);
+        const onDocumentLoaded = this.onDocumentLoaded.bind(this);
+        window.addEventListener('DOMContentLoaded', onDocumentLoaded);
+      }
+    })
   }
 
   enable() {
@@ -79,6 +96,6 @@ export class ResourceTiming extends InstrumentationBase {
       return;
     }
     this.enabled = true;
-    this._waitForPageLoad();
+    this.openParentSpan();
   };
 }
