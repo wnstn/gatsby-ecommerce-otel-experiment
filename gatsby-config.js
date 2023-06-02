@@ -7,9 +7,9 @@ module.exports = {
     title: `Gatsby Sydney Ecommerce Theme`,
     siteUrl: `https://jamm.matter.design`,
   },
-  flags: {
-    DEV_SSR: true,
-  },
+  // flags: {
+  //   DEV_SSR: true,
+  // },
   plugins: [
     {
       resolve: `gatsby-plugin-manifest`,

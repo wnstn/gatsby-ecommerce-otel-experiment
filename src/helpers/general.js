@@ -69,7 +69,7 @@ function isEmpty(input) {
     isAuth()
  */
 function isAuth() {
-  return false;
+  return true;
 }
 
 export { isNumeric, validateEmail, validateStrongPassword, isEmpty, isAuth };
