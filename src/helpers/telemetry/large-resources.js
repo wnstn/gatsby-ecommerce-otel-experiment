@@ -85,13 +85,13 @@ export class ResourceTiming extends InstrumentationBase {
 
     trace.getTracer('app-performance').startActiveSpan('resource-performance', (span) => {
       this.parentSpan = span;
-      if (window.document.readyState === 'complete') {
-        console.log('in readystate');
-        this.onDocumentLoaded();
-      } else {
+      if (window.document.readyState === 'loading') {
         console.log('setting event listener');
         const onDocumentLoaded = this.onDocumentLoaded.bind(this);
         window.addEventListener('DOMContentLoaded', onDocumentLoaded);
+      } else {
+        console.log('loaded');
+        this.onDocumentLoaded();
       }
     })
   }
