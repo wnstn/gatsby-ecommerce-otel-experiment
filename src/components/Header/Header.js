@@ -1,8 +1,6 @@
 import React, { useState, useEffect, createRef } from 'react';
 import { Link, navigate } from 'gatsby';
 
-import { isAuth } from '../../helpers/general';
-
 import AddNotification from '../AddNotification';
 import Brand from '../Brand';
 import Container from '../Container';
@@ -137,7 +135,7 @@ const Header = (prop) => {
             </Link>
             <Link
               aria-label="Orders"
-              to={isAuth() ? '/login' : '/account/orders/'}
+              to='/account/orders/'
               className={`${styles.iconContainer} ${styles.hideOnMobile}`}
             >
               <Icon symbol={'user'}></Icon>

@@ -14,8 +14,8 @@ const CurrencyFormatter = ({
   /* Set language display */
   const languageCode =
     typeof window !== 'undefined'
-      ? window.navigator.language || 'en-AU'
-      : 'en-AU';
+      ? window.navigator.language || 'en-US'
+      : 'en-US';
 
   /* Format and return */
   // isolate currency

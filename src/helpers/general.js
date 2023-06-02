@@ -69,14 +69,7 @@ function isEmpty(input) {
     isAuth()
  */
 function isAuth() {
-  const isBrowser = typeof window !== 'undefined';
-  if (isBrowser) {
-    const token = window.localStorage.getItem('key');
-    if (token) return true;
-    else return false;
-  } else {
-    return true;
-  }
+  return false;
 }
 
 export { isNumeric, validateEmail, validateStrongPassword, isEmpty, isAuth };
