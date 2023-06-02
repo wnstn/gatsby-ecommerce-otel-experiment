@@ -6,14 +6,12 @@ let parentSpanStartTime = 0;
 export class ResourceTiming extends InstrumentationBase {
 
   getNavigationTiming() {
-    console.log('get navigation timing')
     const navTiming = window.performance.getEntriesByType('navigation');
     if (navTiming.length === 0) {
       // wait a tick to see if the browser populates it
-      console.log('still waiting...');
       return setTimeout(this.getNavigationTiming, 1000);
     }
-    console.log('nav timing available');
+
     navTiming.forEach((timing) => {
 
       this.parentSpan.setAttributes({
@@ -35,7 +33,6 @@ export class ResourceTiming extends InstrumentationBase {
   }
 
   getResourcesTiming() {
-    console.log('get resources timing')
     const resources = window.performance.getEntriesByType('resource');
     resources.forEach((entry) => this.getResourceTiming(entry, this.context))
   }
@@ -70,7 +67,6 @@ export class ResourceTiming extends InstrumentationBase {
   }
 
   onDocumentLoaded() {
-    console.log('on document loaded');
     this.context = trace.setSpan(context.active(), this.parentSpan);
     
     const navTiming = this.getNavigationTiming.bind(this);
@@ -80,17 +76,14 @@ export class ResourceTiming extends InstrumentationBase {
   }
 
   openParentSpan() {
-    console.log('opening parent span')
     parentSpanStartTime = Date.now();
 
     trace.getTracer('app-performance').startActiveSpan('resource-performance', (span) => {
       this.parentSpan = span;
       if (window.document.readyState === 'loading') {
-        console.log('setting event listener');
         const onDocumentLoaded = this.onDocumentLoaded.bind(this);
         window.addEventListener('DOMContentLoaded', onDocumentLoaded);
       } else {
-        console.log('loaded');
         this.onDocumentLoaded();
       }
     })
