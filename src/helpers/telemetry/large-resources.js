@@ -28,7 +28,6 @@ export class ResourceTiming extends InstrumentationBase {
       });
     });
     
-    console.log(parentSpanStartTime, parentSpanDuration);
     const endTime = parentSpanStartTime + parentSpanDuration; 
     this.parentSpan.end(endTime);
   }
@@ -61,7 +60,6 @@ export class ResourceTiming extends InstrumentationBase {
     
     // adjust parent span length to match resource timeline
     if (parentSpanDuration <= (entry.startTime + entry.duration)) {
-      console.log(`setting duration to ${entry.startTime + entry.duration}`);
       parentSpanDuration = entry.startTime + entry.duration;
     }
 
