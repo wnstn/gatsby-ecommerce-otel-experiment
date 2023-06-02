@@ -25,6 +25,7 @@ export class ResourceTiming extends InstrumentationBase {
         'page.protocol': timing.nextHopProtocol,
         'page.request_time_ms': timing.responseStart - timing.requestStart,
         'page.transfer_size': timing.transferSize,
+        'page.browser': navigator.userAgent,
       });
     });
     
