@@ -6,14 +6,15 @@ let parentSpanStartTime = 0;
 export class ResourceTiming extends InstrumentationBase {
 
   getNavigationTiming() {
+    console.log('get navigation timing')
     const navTiming = window.performance.getEntriesByType('navigation');
     if (navTiming.length === 0) {
       // wait a tick to see if the browser populates it
+      console.log('still waiting...');
       return setTimeout(this.getNavigationTiming, 1000);
     }
-
+    console.log('nav timing available');
     navTiming.forEach((timing) => {
-      // 
 
       this.parentSpan.setAttributes({
         'page.decoded_size': timing.decodedBodySize,
@@ -34,6 +35,7 @@ export class ResourceTiming extends InstrumentationBase {
   }
 
   getResourcesTiming() {
+    console.log('get resources timing')
     const resources = window.performance.getEntriesByType('resource');
     resources.forEach((entry) => this.getResourceTiming(entry, this.context))
   }
@@ -68,6 +70,7 @@ export class ResourceTiming extends InstrumentationBase {
   }
 
   onDocumentLoaded() {
+    console.log('on document loaded');
     this.context = trace.setSpan(context.active(), this.parentSpan);
     
     const navTiming = this.getNavigationTiming.bind(this);
@@ -77,6 +80,7 @@ export class ResourceTiming extends InstrumentationBase {
   }
 
   openParentSpan() {
+    console.log('opening parent span')
     parentSpanStartTime = Date.now();
 
     trace.getTracer('app-performance').startActiveSpan('resource-performance', (span) => {
