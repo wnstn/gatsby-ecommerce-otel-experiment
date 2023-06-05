@@ -1,6 +1,17 @@
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
 import { trace, context } from '@opentelemetry/api';
 
+/** 
+   Capture performance timing for all resources accessed during page load.
+   This instrumentation relies on the browser Performance API to get timing
+   for page load (Navigation Timing https:\\developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming )
+   and for resources (Resource Timing https:\\developer.mozilla.org/en-US/docs/web/api/performanceresourcetiming )
+   the data is shaped to be easy for querying and identifying slow/large/outlier resources.
+
+   The trace waterfall generated is based on relative timings because the performance API
+   does not provide timestamps, so some work is needed to make the relative timings make sense.
+*/
+
 let parentSpanDuration = 0;
 let parentSpanStartTime = 0;
 export class ResourceTiming extends InstrumentationBase {
@@ -32,19 +43,18 @@ export class ResourceTiming extends InstrumentationBase {
     this.parentSpan.end(endTime);
   }
 
-  getResourcesTiming() {
+  getResources() {
     const resources = window.performance.getEntriesByType('resource');
     resources.forEach((entry) => this.getResourceTiming(entry, this.context))
   }
 
   getResourceTiming(entry, parentSpanContext) {
     const startTime = parentSpanStartTime + entry.startTime;
-    const endTime = startTime + entry.duration;
-
     const resourceSpan = trace
       .getTracer('resource-performance')
       .startSpan(entry.initiatorType, { startTime: startTime }, parentSpanContext);
 
+    // https://developer.mozilla.org/en-US/docs/web/api/performanceresourcetiming
     resourceSpan.setAttributes({
       'resource.duration_ms': entry.duration,
       'resource.tcp.duration_ms': entry.connectEnd - entry.connectStart,
@@ -63,14 +73,14 @@ export class ResourceTiming extends InstrumentationBase {
       parentSpanDuration = entry.startTime + entry.duration;
     }
 
-    resourceSpan.end(endTime);
+    resourceSpan.end(startTime + entry.duration);
   }
 
   onDocumentLoaded() {
     this.context = trace.setSpan(context.active(), this.parentSpan);
     
     const navTiming = this.getNavigationTiming.bind(this);
-    const resourceTiming = this.getResourcesTiming.bind(this);
+    const resourceTiming = this.getResources.bind(this);
     requestIdleCallback(resourceTiming, {timeout: 2000});
     requestIdleCallback(navTiming, {timeout: 2000});
   }
@@ -94,6 +104,7 @@ export class ResourceTiming extends InstrumentationBase {
       return;
     }
     this.enabled = true;
+    if (!window[performance]) { return; } 
     this.openParentSpan();
   };
 }
