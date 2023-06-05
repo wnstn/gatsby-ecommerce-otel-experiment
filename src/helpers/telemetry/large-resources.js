@@ -104,7 +104,6 @@ export class ResourceTiming extends InstrumentationBase {
       return;
     }
     this.enabled = true;
-    if (!window[performance]) { return; } 
     this.openParentSpan();
   };
 }
