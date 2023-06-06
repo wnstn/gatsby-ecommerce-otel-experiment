@@ -1,4 +1,9 @@
 import { InstrumentationBase } from '@opentelemetry/instrumentation';
+import { 
+  addSpanNetworkEvents,
+  addSpanNetworkEvent,
+  normalizeUrl, 
+  PerformanceTimingNames as PerfTypes } from '@opentelemetry/sdk-trace-web';
 import { trace, context } from '@opentelemetry/api';
 
 /** 
@@ -20,12 +25,16 @@ export class ResourceTiming extends InstrumentationBase {
     const navTiming = window.performance.getEntriesByType('navigation');
     if (navTiming.length === 0) {
       // wait a tick to see if the browser populates it
-      return setTimeout(this.getNavigationTiming, 1000);
+      return setTimeout(this.getNavigationTiming.bind(this), 100);
     }
+  
+    const parentSpan = trace.getTracer('app-performance').startSpan('resource-performance', {startTime: navTiming[0][PerfTypes.FETCH_START]}, context.active());
+
+    addSpanNetworkEvents(this.parentSpan, navTiming);
 
     navTiming.forEach((timing) => {
 
-      this.parentSpan.setAttributes({
+      parentSpan.setAttributes({
         'page.decoded_size': timing.decodedBodySize,
         'page.dom_content_loaded': timing.domContentLoadEventEnd - timing.domContentLoadedEventStart,
         'page.dom_interactive_ms': timing.domInteractive - timing.fetchStart,
@@ -38,21 +47,23 @@ export class ResourceTiming extends InstrumentationBase {
         'page.browser': navigator.userAgent,
       });
     });
-    
-    const endTime = parentSpanStartTime + parentSpanDuration; 
-    this.parentSpan.end(endTime);
+
+    this.getResources(parentSpan);
+
+    parentSpan.end(navTiming[0][PerfTypes.LOAD_EVENT_END]);
   }
 
-  getResources() {
+  getResources(parentSpanContext) {
     const resources = window.performance.getEntriesByType('resource');
-    resources.forEach((entry) => this.getResourceTiming(entry, this.context))
+    resources.forEach((entry) => this.getResourceTiming(entry, parentSpanContext))
   }
 
   getResourceTiming(entry, parentSpanContext) {
-    const startTime = parentSpanStartTime + entry.startTime;
     const resourceSpan = trace
       .getTracer('resource-performance')
-      .startSpan(entry.initiatorType, { startTime: startTime }, parentSpanContext);
+      .startSpan(entry.initiatorType, { startTime: entry[PerfTypes.FETCH_START] }, trace.setSpan(context.active(),parentSpanContext));
+
+    addSpanNetworkEvents(resourceSpan, entry);
 
     // https://developer.mozilla.org/en-US/docs/web/api/performanceresourcetiming
     resourceSpan.setAttributes({
@@ -73,30 +84,21 @@ export class ResourceTiming extends InstrumentationBase {
       parentSpanDuration = entry.startTime + entry.duration;
     }
 
-    resourceSpan.end(startTime + entry.duration);
+    resourceSpan.end(entry[PerfTypes.RESPONSE_END]);
   }
 
   onDocumentLoaded() {
-    this.context = trace.setSpan(context.active(), this.parentSpan);
-    
     const navTiming = this.getNavigationTiming.bind(this);
-    const resourceTiming = this.getResources.bind(this);
-    requestIdleCallback(resourceTiming, {timeout: 2000});
     requestIdleCallback(navTiming, {timeout: 2000});
   }
 
-  openParentSpan() {
-    parentSpanStartTime = Date.now();
-
-    trace.getTracer('app-performance').startActiveSpan('resource-performance', (span) => {
-      this.parentSpan = span;
-      if (window.document.readyState === 'loading') {
-        const onDocumentLoaded = this.onDocumentLoaded.bind(this);
-        window.addEventListener('DOMContentLoaded', onDocumentLoaded);
-      } else {
-        this.onDocumentLoaded();
-      }
-    })
+  openParentSpan() {  
+    if (window.document.readyState === 'loading') {
+      const onDocumentLoaded = this.onDocumentLoaded.bind(this);
+      window.addEventListener('DOMContentLoaded', onDocumentLoaded);
+    } else {
+      this.onDocumentLoaded();
+    }
   }
 
   enable() {
