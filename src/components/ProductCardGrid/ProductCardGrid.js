@@ -13,6 +13,8 @@ const ProductCardGrid = (props) => {
     gridTemplateColumns: `repeat(${columns}, 1fr)`,
   };
 
+  // throw new Error('ohhhhh no');
+
   const renderCards = () => {
     return data.map((product, index) => {
       return (

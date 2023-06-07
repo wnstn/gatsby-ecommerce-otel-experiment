@@ -32,21 +32,7 @@ export class ResourceTiming extends InstrumentationBase {
 
     addSpanNetworkEvents(this.parentSpan, navTiming);
 
-    navTiming.forEach((timing) => {
 
-      parentSpan.setAttributes({
-        'page.decoded_size': timing.decodedBodySize,
-        'page.dom_content_loaded': timing.domContentLoadEventEnd - timing.domContentLoadedEventStart,
-        'page.dom_interactive_ms': timing.domInteractive - timing.fetchStart,
-        'page.encoded_body_size': timing.encodedBodySize,
-        'page.load_time_ms': timing.loadEventEnd - timing.fetchStart,
-        'page.navigation_duration_ms': timing.duration,
-        'page.protocol': timing.nextHopProtocol,
-        'page.request_time_ms': timing.responseStart - timing.requestStart,
-        'page.transfer_size': timing.transferSize,
-        'page.browser': navigator.userAgent,
-      });
-    });
 
     this.getResources(parentSpan);
 
@@ -65,19 +51,7 @@ export class ResourceTiming extends InstrumentationBase {
 
     addSpanNetworkEvents(resourceSpan, entry);
 
-    // https://developer.mozilla.org/en-US/docs/web/api/performanceresourcetiming
-    resourceSpan.setAttributes({
-      'resource.duration_ms': entry.duration,
-      'resource.tcp.duration_ms': entry.connectEnd - entry.connectStart,
-      'resource.dns.duration_ms': entry.domainLookupEnd - entry.domainLookupStart,
-      'resource.request.duration_ms': entry.responseStart - entry.requestStart,
-      'resource.tls_handshake.duration_ms': entry.requestStart - entry.secureConnectionStart,
-      'resource.compressed': entry.decodedBodySize !== entry.encodedBodySize,
-      'resource.wire_size': entry.transferSize,
-      'resource.decoded_size': entry.decodedBodySize,
-      'resource.name': entry.name,
-      'resource.start_time_relative': entry.startTime,
-    });
+
     
     // adjust parent span length to match resource timeline
     if (parentSpanDuration <= (entry.startTime + entry.duration)) {

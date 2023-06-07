@@ -9,9 +9,10 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 // instrumentation we want
 import { WebVitalsInstrumentation } from './telemetry/core-web-vitals-instrumentation';
 import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load';
-import { DocumentCustomSpans } from './telemetry/document-load-custom-spans';
+import { DocumentFetchSpans, DocumentLoadSpans, ResourceFetchSpans } from './telemetry/document-load-custom-spans';
 import { UserInteractionInstrumentation } from '@opentelemetry/instrumentation-user-interaction';
-import { ResourceTiming } from './telemetry/large-resources';
+import { ErrorCatching } from './telemetry/error-catching';
+// import { ResourceTiming } from './telemetry/large-resources';
 
 const exporter = new OTLPTraceExporter({
   url: "https://api-dogfood.honeycomb.io/v1/traces",
@@ -35,11 +36,14 @@ registerInstrumentations({
     new WebVitalsInstrumentation(),
     new DocumentLoadInstrumentation({
       applyCustomAttributesOnSpan: {
-          documentLoad: DocumentCustomSpans
+          documentLoad: DocumentLoadSpans,
+          documentFetch: DocumentFetchSpans,
+          resourceFetch: ResourceFetchSpans,
       }
     }),
     new UserInteractionInstrumentation(),
-    new ResourceTiming(),
+    // new ResourceTiming(),
+    new ErrorCatching(),
   ],
 });
 
