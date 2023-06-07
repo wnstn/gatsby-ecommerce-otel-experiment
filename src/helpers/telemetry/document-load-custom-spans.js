@@ -8,6 +8,7 @@ export const DocumentFetchSpans = (span) => {
 }
 
 export const ResourceFetchSpans = (span, resource) => {
+  if (!resource) { return; }
 
   span.setAttributes({
     'resource.initiator': resource.initiatorType,
@@ -18,19 +19,4 @@ export const ResourceFetchSpans = (span, resource) => {
     'resource.request.duration_ms': resource.responseStart - resource.requestStart,
     'resource.transferred': resource.transferSize,
   });
-
-    // // https://developer.mozilla.org/en-US/docs/web/api/performanceresourcetiming
-    // entry.initiator
-    // resourceSpan.setAttributes({
-    //   'resource.duration_ms': entry.duration,
-    //   'resource.tcp.duration_ms': entry.connectEnd - entry.connectStart,
-    //   'resource.dns.duration_ms': entry.domainLookupEnd - entry.domainLookupStart,
-    //   'resource.request.duration_ms': entry.responseStart - entry.requestStart,
-    //   'resource.tls_handshake.duration_ms': entry.requestStart - entry.secureConnectionStart,
-    //   
-    //   'resource.wire_size': entry.transferSize,
-    //   'resource.name': entry.name,
-    //   'resource.start_time_relative': entry.startTime,
-    // });
-
 }
