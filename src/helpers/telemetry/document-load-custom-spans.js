@@ -1,11 +1,13 @@
 export const DocumentLoadSpans = (span) => {
-  console.log('document load span');
-  span.setAttribute('document.title',document.title);
+  span.setAttributes({
+    'document.title':document.title,
+    'document.is_secure': window.isSecureContext,
+    'document.uri': document.URL,
+    'document.script_count': document.scripts.length,
+    'document.stylesheet.count': document.styleSheets,
+    'document.visibility': document.visibilityState,
+  });
 };
-
-export const DocumentFetchSpans = (span) => {
-  console.log('fetch span');
-}
 
 export const ResourceFetchSpans = (span, resource) => {
   if (!resource) { return; }

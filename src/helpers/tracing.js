@@ -9,11 +9,10 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 // instrumentation we want
 import { WebVitalsInstrumentation } from './telemetry/core-web-vitals-instrumentation';
 import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load';
-import { DocumentFetchSpans, DocumentLoadSpans, ResourceFetchSpans } from './telemetry/document-load-custom-spans';
+import { DocumentLoadSpans, ResourceFetchSpans } from './telemetry/document-load-custom-spans';
 import { UserInteractionInstrumentation } from '@opentelemetry/instrumentation-user-interaction';
 import { ErrorCatching } from './telemetry/error-catching';
 import { getOrSetSessionID } from './telemetry/session-data';
-// import { ResourceTiming } from './telemetry/large-resources';
 
 const SESSION_ID = getOrSetSessionID();
 
@@ -38,10 +37,6 @@ const provider = new WebTracerProvider({
 
 const processor = new BatchSpanProcessor(exporter);
 
-// processor.onStart = (span) => {
-//   span.setAttribute('session_id', SESSION_ID)
-// }
-
 provider.addSpanProcessor(processor);
 provider.register({
   contextManager: new ZoneContextManager(),
@@ -53,7 +48,6 @@ registerInstrumentations({
     new DocumentLoadInstrumentation({
       applyCustomAttributesOnSpan: {
           documentLoad: DocumentLoadSpans,
-          documentFetch: DocumentFetchSpans,
           resourceFetch: ResourceFetchSpans,
       }
     }),
