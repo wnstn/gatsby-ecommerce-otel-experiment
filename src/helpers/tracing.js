@@ -12,7 +12,10 @@ import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-docu
 import { DocumentFetchSpans, DocumentLoadSpans, ResourceFetchSpans } from './telemetry/document-load-custom-spans';
 import { UserInteractionInstrumentation } from '@opentelemetry/instrumentation-user-interaction';
 import { ErrorCatching } from './telemetry/error-catching';
+import { getOrSetSessionID } from './telemetry/session-data';
 // import { ResourceTiming } from './telemetry/large-resources';
+
+const SESSION_ID = getOrSetSessionID();
 
 const exporter = new OTLPTraceExporter({
   url: "https://api-dogfood.honeycomb.io/v1/traces",
@@ -24,9 +27,22 @@ const exporter = new OTLPTraceExporter({
 const provider = new WebTracerProvider({
   resource: new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: process.env.GATSBY_SERVICE_NAME,
+    'session_id': SESSION_ID,
+    'session.window.width': window.innerWidth,
+    'session.window.height': window.innerHeight,
+    'session.device.width': window.outerWidth,
+    'session.device.height': window.outerHeight,
+    'session.user_agent': navigator.userAgent,
   })
 });
-provider.addSpanProcessor(new BatchSpanProcessor(exporter));
+
+const processor = new BatchSpanProcessor(exporter);
+
+// processor.onStart = (span) => {
+//   span.setAttribute('session_id', SESSION_ID)
+// }
+
+provider.addSpanProcessor(processor);
 provider.register({
   contextManager: new ZoneContextManager(),
 });
